@@ -1,8 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { TextField, MenuItem, Button, Container, Typography, Grid, Switch, FormControlLabel, createTheme, CssBaseline, ThemeProvider } from '@mui/material';
+import {
+  TextField,
+  MenuItem,
+  Button,
+  Container,
+  Typography,
+  Grid,
+  Switch,
+  FormControlLabel,
+  BottomNavigation,
+  BottomNavigationAction,
+  createTheme,
+  ThemeProvider,
+  CssBaseline,
+} from '@mui/material';
 import { motion } from 'framer-motion';
 import AddCurrencyForm from './AddCurrencyForm';
+import HomeIcon from '@mui/icons-material/Home';
+import AddIcon from '@mui/icons-material/Add';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 interface Currency {
   code: string;
@@ -19,6 +36,8 @@ const CurrencyConverter: React.FC = () => {
   const [isSwitched, setIsSwitched] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [showAddCurrency, setShowAddCurrency] = useState<boolean>(false);
+  const [navValue, setNavValue] = useState<number>(0);
 
   useEffect(() => {
     const cachedRates = localStorage.getItem('exchangeRates');
@@ -91,15 +110,15 @@ const CurrencyConverter: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="sm">
-        <Typography variant="h4" align="center" gutterBottom>
+      <Container maxWidth="sm" sx={{ paddingBottom: '56px' }}>
+        <Typography variant="h4" align="center" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
           Currency Converter
         </Typography>
         <FormControlLabel
           control={<Switch checked={darkMode} onChange={() => setDarkMode(!darkMode)} />}
           label="Dark Mode"
         />
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -107,6 +126,7 @@ const CurrencyConverter: React.FC = () => {
               type="number"
               value={amount}
               onChange={(e) => setAmount(parseFloat(e.target.value))}
+              inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -146,7 +166,7 @@ const CurrencyConverter: React.FC = () => {
             />
           </Grid>
           <Grid item xs={12}>
-            <Button fullWidth variant="contained" color="primary" onClick={handleConvert}>
+            <Button fullWidth variant="contained" color="primary" onClick={handleConvert} sx={{ padding: '12px' }}>
               Convert
             </Button>
           </Grid>
@@ -171,10 +191,23 @@ const CurrencyConverter: React.FC = () => {
             </Grid>
           )}
           <Grid item xs={12}>
-            <AddCurrencyForm onAddCurrency={handleAddCurrency} />
+            <Button fullWidth variant="outlined" onClick={() => setShowAddCurrency(!showAddCurrency)}>
+              {showAddCurrency ? 'Hide Add Currency' : 'Add New Currency'}
+            </Button>
+            {showAddCurrency && <AddCurrencyForm onAddCurrency={handleAddCurrency} />}
           </Grid>
         </Grid>
       </Container>
+      <BottomNavigation
+        value={navValue}
+        onChange={(event, newValue) => setNavValue(newValue)}
+        showLabels
+        sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }}
+      >
+        <BottomNavigationAction label="Home" icon={<HomeIcon />} />
+        <BottomNavigationAction label="Add Currency" icon={<AddIcon />} onClick={() => setShowAddCurrency(true)} />
+        <BottomNavigationAction label="Settings" icon={<SettingsIcon />} />
+      </BottomNavigation>
     </ThemeProvider>
   );
 };
