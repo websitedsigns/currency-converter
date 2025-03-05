@@ -21,22 +21,23 @@ import AddCurrencyForm from './AddCurrencyForm';
 import HomeIcon from '@mui/icons-material/Home';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { Currency } from '../currencies';
+import { currencies as initialCurrencies, Currency } from './currencies';
 import Loading from './Loading';
 
 const CurrencyConverter: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
+  const [currencies, setCurrencies] = useState<Currency[]>(initialCurrencies);
   const [fromCurrency, setFromCurrency] = useState<string>('USD');
   const [toCurrency, setToCurrency] = useState<string>('EUR');
   const [amount, setAmount] = useState<number>(1);
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
   const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({});
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [isSwitched, setIsSwitched] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [showAddCurrency, setShowAddCurrency] = useState<boolean>(false);
   const [navValue, setNavValue] = useState<number>(0);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,6 +46,7 @@ const CurrencyConverter: React.FC = () => {
         const cachedRates = localStorage.getItem('exchangeRates');
         if (cachedRates) {
           setExchangeRates(JSON.parse(cachedRates));
+          setLastUpdated(localStorage.getItem('lastUpdated'));
         } else {
           await fetchExchangeRates();
         }
@@ -62,8 +64,9 @@ const CurrencyConverter: React.FC = () => {
   useEffect(() => {
     if (Object.keys(exchangeRates).length > 0) {
       localStorage.setItem('exchangeRates', JSON.stringify(exchangeRates));
+      localStorage.setItem('lastUpdated', lastUpdated || '');
     }
-  }, [exchangeRates]);
+  }, [exchangeRates, lastUpdated]);
 
   const fetchCurrencies = async () => {
     try {
@@ -71,8 +74,8 @@ const CurrencyConverter: React.FC = () => {
       const currencyList = Object.keys(response.data.rates).map((code) => ({
         code,
         name: code,
-        symbol: code, // Replace with actual symbol if available
-        flag: '', // Replace with actual flag if available
+        symbol: '', // Add appropriate symbol if available
+        flag: '', // Add appropriate flag if available
       }));
       setCurrencies(currencyList);
     } catch (error) {
@@ -88,6 +91,8 @@ const CurrencyConverter: React.FC = () => {
       }
       setExchangeRates(response.data.rates);
       setError(null);
+      // Set the last updated time and date
+      setLastUpdated(new Date().toLocaleString());
     } catch (error) {
       setError('Failed to fetch exchange rates. Please try again later.');
     }
@@ -108,8 +113,8 @@ const CurrencyConverter: React.FC = () => {
   };
 
   const handleAddCurrency = (code: string) => {
-    if (!currencies.some((currency) => currency.code === code)) {
-      setCurrencies([...currencies, { code, name: code, symbol: code, flag: '' }]);
+    if (!currencies.some((currency: Currency) => currency.code === code)) {
+      setCurrencies([...currencies, { code, name: code, symbol: '', flag: '' }]);
     }
   };
 
@@ -166,7 +171,7 @@ const CurrencyConverter: React.FC = () => {
               value={fromCurrency}
               onChange={(e) => setFromCurrency(e.target.value)}
             >
-              {currencies.map((currency) => (
+              {currencies.map((currency: Currency) => (
                 <MenuItem key={currency.code} value={currency.code}>
                   <Box display="flex" alignItems="center">
                     <Typography variant="body1" mr={1}>
@@ -188,7 +193,7 @@ const CurrencyConverter: React.FC = () => {
               value={toCurrency}
               onChange={(e) => setToCurrency(e.target.value)}
             >
-              {currencies.map((currency) => (
+              {currencies.map((currency: Currency) => (
                 <MenuItem key={currency.code} value={currency.code}>
                   <Box display="flex" alignItems="center">
                     <Typography variant="body1" mr={1}>
@@ -221,8 +226,8 @@ const CurrencyConverter: React.FC = () => {
                 transition={{ duration: 0.5 }}
               >
                 <Typography variant="h6" align="center">
-                  {amount} {currencies.find((c) => c.code === fromCurrency)?.flag} {fromCurrency} ={' '}
-                  {convertedAmount.toFixed(2)} {currencies.find((c) => c.code === toCurrency)?.flag} {toCurrency}
+                  {amount} {currencies.find((c: Currency) => c.code === fromCurrency)?.flag} {fromCurrency} ={' '}
+                  {convertedAmount.toFixed(2)} {currencies.find((c: Currency) => c.code === toCurrency)?.flag} {toCurrency}
                 </Typography>
               </motion.div>
             </Grid>
@@ -231,6 +236,23 @@ const CurrencyConverter: React.FC = () => {
             <Grid item xs={12}>
               <Typography color="error" align="center">
                 {error}
+              </Typography>
+            </Grid>
+          )}
+          <Grid item xs={12}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={fetchExchangeRates}
+              sx={{ marginTop: 2 }}
+            >
+              Update Currencies
+            </Button>
+          </Grid>
+          {lastUpdated && (
+            <Grid item xs={12}>
+              <Typography variant="body2" align="center" sx={{ marginTop: 2 }}>
+                Last updated: {lastUpdated}
               </Typography>
             </Grid>
           )}
