@@ -14,25 +14,24 @@ import {
   createTheme,
   ThemeProvider,
   CssBaseline,
+  Box,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import AddCurrencyForm from './AddCurrencyForm';
 import HomeIcon from '@mui/icons-material/Home';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
-
-interface Currency {
-  code: string;
-  name: string;
-}
+import { Currency } from '../currencies';
+import Loading from './Loading';
 
 const CurrencyConverter: React.FC = () => {
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [fromCurrency, setFromCurrency] = useState<string>('USD');
   const [toCurrency, setToCurrency] = useState<string>('EUR');
   const [amount, setAmount] = useState<number>(1);
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
   const [exchangeRates, setExchangeRates] = useState<{ [key: string]: number }>({});
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [isSwitched, setIsSwitched] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -40,13 +39,24 @@ const CurrencyConverter: React.FC = () => {
   const [navValue, setNavValue] = useState<number>(0);
 
   useEffect(() => {
-    const cachedRates = localStorage.getItem('exchangeRates');
-    if (cachedRates) {
-      setExchangeRates(JSON.parse(cachedRates));
-    } else {
-      fetchExchangeRates();
-    }
-    fetchCurrencies();
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const cachedRates = localStorage.getItem('exchangeRates');
+        if (cachedRates) {
+          setExchangeRates(JSON.parse(cachedRates));
+        } else {
+          await fetchExchangeRates();
+        }
+        await fetchCurrencies();
+      } catch (error) {
+        setError('Failed to fetch data. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -61,6 +71,8 @@ const CurrencyConverter: React.FC = () => {
       const currencyList = Object.keys(response.data.rates).map((code) => ({
         code,
         name: code,
+        symbol: code, // Replace with actual symbol if available
+        flag: '', // Replace with actual flag if available
       }));
       setCurrencies(currencyList);
     } catch (error) {
@@ -97,15 +109,32 @@ const CurrencyConverter: React.FC = () => {
 
   const handleAddCurrency = (code: string) => {
     if (!currencies.some((currency) => currency.code === code)) {
-      setCurrencies([...currencies, { code, name: code }]);
+      setCurrencies([...currencies, { code, name: code, symbol: code, flag: '' }]);
     }
   };
 
   const theme = createTheme({
     palette: {
       mode: darkMode ? 'dark' : 'light',
+      primary: {
+        main: '#1976d2',
+      },
+      secondary: {
+        main: '#dc004e',
+      },
+      background: {
+        default: darkMode ? '#121212' : '#f5f5f5',
+        paper: darkMode ? '#1e1e1e' : '#ffffff',
+      },
+    },
+    typography: {
+      fontFamily: 'Roboto, sans-serif',
     },
   });
+
+  if (loading) {
+    return <Loading />;
+  }
 
   return (
     <ThemeProvider theme={theme}>
@@ -139,7 +168,14 @@ const CurrencyConverter: React.FC = () => {
             >
               {currencies.map((currency) => (
                 <MenuItem key={currency.code} value={currency.code}>
-                  {currency.name}
+                  <Box display="flex" alignItems="center">
+                    <Typography variant="body1" mr={1}>
+                      {currency.flag}
+                    </Typography>
+                    <Typography variant="body1">
+                      {currency.name} ({currency.symbol})
+                    </Typography>
+                  </Box>
                 </MenuItem>
               ))}
             </TextField>
@@ -154,7 +190,14 @@ const CurrencyConverter: React.FC = () => {
             >
               {currencies.map((currency) => (
                 <MenuItem key={currency.code} value={currency.code}>
-                  {currency.name}
+                  <Box display="flex" alignItems="center">
+                    <Typography variant="body1" mr={1}>
+                      {currency.flag}
+                    </Typography>
+                    <Typography variant="body1">
+                      {currency.name} ({currency.symbol})
+                    </Typography>
+                  </Box>
                 </MenuItem>
               ))}
             </TextField>
@@ -178,7 +221,8 @@ const CurrencyConverter: React.FC = () => {
                 transition={{ duration: 0.5 }}
               >
                 <Typography variant="h6" align="center">
-                  {amount} {fromCurrency} = {convertedAmount.toFixed(2)} {toCurrency}
+                  {amount} {currencies.find((c) => c.code === fromCurrency)?.flag} {fromCurrency} ={' '}
+                  {convertedAmount.toFixed(2)} {currencies.find((c) => c.code === toCurrency)?.flag} {toCurrency}
                 </Typography>
               </motion.div>
             </Grid>
